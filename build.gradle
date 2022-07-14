@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application' version '7.2.1' apply true
+}
+
+repositories {
+    google()
+    mavenCentral()
+}
+
+android {
+    compileSdk 32
+
+    defaultConfig {
+        applicationId "io.github.rsookram.ssr"
+        minSdk 30
+        targetSdk 32
+        versionCode 1
+        versionName "1.0"
+    }
+
+    signingConfigs {
+        debug {
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+        release {
+            if (System.getenv("SSR_STORE_FILE") != null) {
+                storeFile file(System.getenv("SSR_STORE_FILE"))
+                storePassword System.getenv("SSR_STORE_PASSWORD")
+                keyAlias System.getenv("SSR_KEY_ALIAS")
+                keyPassword System.getenv("SSR_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles 'proguard-rules.pro'
+
+            signingConfig signingConfigs.release
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+    }
+}
