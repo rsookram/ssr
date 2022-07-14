@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="label_reading_mode">Reading mode</string>
+    <string name="mode_vertical_scroll">Vertical scroll</string>
+    <string name="mode_horizontal_scroll_reverse">Reverse horizontal scroll</string>
+    <string name="mode_page_reverse">Reverse page</string>
+    <string name="label_crop">Crop</string>
+
+</resources>
