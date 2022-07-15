@@ -22,6 +22,8 @@ class ReverseHScrollView(context: Context) : RecyclerView(context), Reader {
     private val adapter = PageAdapter(ImageScaler.maxHeight)
         .also(this::setAdapter)
 
+    private var pendingMove: Position? = null
+
     override var onPositionChanged: (Position) -> Unit = {}
 
     init {
@@ -60,7 +62,9 @@ class ReverseHScrollView(context: Context) : RecyclerView(context), Reader {
     }
 
     private fun moveTo(position: Position) {
-        if (getPosition()?.isApproximatelyEqualTo(position) == true) {
+        if (getPosition()?.isApproximatelyEqualTo(position) == true ||
+            pendingMove?.isApproximatelyEqualTo(position) == true
+        ) {
             return
         }
 
@@ -69,9 +73,12 @@ class ReverseHScrollView(context: Context) : RecyclerView(context), Reader {
             return
         }
 
+        pendingMove = position
+
         doOnNextLayout {
             val newX = ((-getChildAt(0).width).toDouble() * position.offset).toInt()
             scrollBy(newX, 0)
+            pendingMove = null
         }
     }
 
