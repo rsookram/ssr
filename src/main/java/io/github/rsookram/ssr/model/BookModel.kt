@@ -1,6 +1,7 @@
 package io.github.rsookram.ssr.model
 
 import android.content.Context
+import android.net.Uri
 import io.github.rsookram.ssr.entity.Book
 import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.Position
@@ -13,7 +14,10 @@ class BookDao(context: Context) {
 
     private val prefs = context.getSharedPreferences("book", Context.MODE_PRIVATE)
 
-    private val books = MutableSharedFlow<Book>(onBufferOverflow = BufferOverflow.DROP_OLDEST)
+    private val books = MutableSharedFlow<Book>(
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+        extraBufferCapacity = Int.MAX_VALUE,
+    )
 
     fun insertIfNotPresent(book: Book) {
         if (prefs.getString(key(book), null) == null) {
@@ -29,21 +33,21 @@ class BookDao(context: Context) {
         books.tryEmit(book)
     }
 
-    fun books(filename: String) = flow<Book> {
-        val book = get(filename)
+    fun books(uri: Uri) = flow<Book> {
+        val book = get(uri)
         if (book != null) {
             emit(book)
         }
 
-        emitAll(books.filter { it.filename == filename })
+        emitAll(books.filter { it.uri == uri })
     }
 
-    private fun get(filename: String): Book? {
-        val json = prefs.getString(filename, null) ?: return null
-        return fromJson(filename, json)
+    private fun get(uri: Uri): Book? {
+        val json = prefs.getString(uri.toString(), null) ?: return null
+        return fromJson(uri, json)
     }
 
-    private fun key(book: Book): String = book.filename
+    private fun key(book: Book): String = book.uri.toString()
 
     private fun toJson(book: Book): String {
         return JSONObject().apply {
@@ -57,11 +61,11 @@ class BookDao(context: Context) {
         }.toString()
     }
 
-    private fun fromJson(filename: String, jsonStr: String): Book? {
+    private fun fromJson(uri: Uri, jsonStr: String): Book? {
         val json = kotlin.runCatching { JSONObject(jsonStr) }.getOrNull() ?: return null
 
         return Book(
-            filename,
+            uri,
             Position(
                 json.runCatching { getInt("pageIndex") }.getOrNull() ?: return null,
                 json.runCatching { getDouble("offset") }.getOrNull() ?: return null,

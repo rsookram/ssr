@@ -1,7 +1,6 @@
 package io.github.rsookram.ssr
 
-import android.content.Context
-import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.viewModels
@@ -23,7 +22,7 @@ import java.io.File
 @AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
-    private var bookFile: File? = null
+    private var bookUri: Uri? = null
     private var reader: Reader? = null
 
     private val vm: ReaderViewModel by viewModels()
@@ -33,14 +32,14 @@ class MainActivity : FragmentActivity() {
 
         window.enterImmersiveMode()
 
-        val file = intent.getSerializableExtra(EXTRA_FILE) as File?
-        if (file == null) {
+        val uri = intent.data
+        if (uri == null) {
             finish()
             return
         }
-        bookFile = file
+        bookUri = uri
 
-        vm.loadBook(file)
+        vm.loadBook(uri)
 
         val view = MainView(findViewById(android.R.id.content), vm)
 
@@ -66,16 +65,16 @@ class MainActivity : FragmentActivity() {
         vm.menuShows.observe(this, this::showMenu)
     }
 
-    private fun showMenu(file: File) {
+    private fun showMenu(uri: Uri) {
         // TODO: Move away from fragments
-        ReaderMenuFragment.newInstance(file).show(supportFragmentManager, null)
+        ReaderMenuFragment.newInstance(uri).show(supportFragmentManager, null)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        val file = bookFile
+        val uri = bookUri
 
-        if (keyCode == KeyEvent.KEYCODE_MENU && file != null) {
-            showMenu(file)
+        if (keyCode == KeyEvent.KEYCODE_MENU && uri != null) {
+            showMenu(uri)
             return true
         }
 
@@ -97,14 +96,5 @@ class MainActivity : FragmentActivity() {
         if (hasFocus) {
             window.enterImmersiveMode()
         }
-    }
-
-    companion object {
-
-        private const val EXTRA_FILE = "file"
-
-        fun newIntent(context: Context, file: File) =
-            Intent(context, MainActivity::class.java)
-                .putExtra(EXTRA_FILE, file)
     }
 }

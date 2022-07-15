@@ -2,6 +2,7 @@ package io.github.rsookram.ssr.reader.menu
 
 import android.app.AlertDialog
 import android.app.Dialog
+import android.net.Uri
 import android.os.Bundle
 import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
@@ -10,7 +11,6 @@ import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import java.io.File
 
 // TODO: Fix bug with config change while this is shown
 @AndroidEntryPoint
@@ -34,9 +34,9 @@ class ReaderMenuFragment : DialogFragment() {
 
     companion object {
 
-        fun newInstance(bookFile: File): DialogFragment =
+        fun newInstance(bookUri: Uri): DialogFragment =
             ReaderMenuFragment().apply {
-                arguments = bundleOf(ReaderMenuViewModel.KEY_FILE to bookFile)
+                arguments = bundleOf(ReaderMenuViewModel.KEY_URI to bookUri)
             }
     }
 }

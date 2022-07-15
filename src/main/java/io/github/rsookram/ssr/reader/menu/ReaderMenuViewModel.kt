@@ -1,5 +1,6 @@
 package io.github.rsookram.ssr.reader.menu
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -25,7 +26,7 @@ class ReaderMenuViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val file = savedStateHandle.get<File>(KEY_FILE)!!
+    private val uri = savedStateHandle.get<Uri>(KEY_URI)!!
 
     private val _states = MutableStateFlow(ReaderMenuState())
     val states: Flow<ReaderMenuState> = _states
@@ -35,11 +36,11 @@ class ReaderMenuViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            val pageCount = pageLoader.load(file).size
+            val pageCount = pageLoader.load(uri).size
             _states.value = _states.value.copy(pageCount = pageCount)
         }
 
-        dao.books(file.name)
+        dao.books(uri)
             .onEach { book ->
                 val currentValue = _states.value
 
@@ -86,7 +87,7 @@ class ReaderMenuViewModel @Inject constructor(
     }
 
     companion object {
-        const val KEY_FILE = "book_uri"
+        const val KEY_URI = "book_uri"
     }
 }
 

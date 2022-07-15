@@ -1,6 +1,8 @@
 package io.github.rsookram.page
 
-import android.util.LruCache
+import android.content.ContentResolver
+import android.net.Uri
+import android.provider.DocumentsContract
 import io.github.rsookram.ssr.BgDispatcher
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -8,37 +10,28 @@ import okio.Buffer
 import okio.ByteString.Companion.toByteString
 import okio.buffer
 import okio.source
-import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class PageLoader @Inject constructor(@BgDispatcher private val bgDispatcher: CoroutineDispatcher) {
+class PageLoader @Inject constructor(
+    private val contentResolver: ContentResolver,
+    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
+) {
 
-    private val cache: LruCache<File, List<Page>> = LruCache(2)
-
-    suspend fun load(file: File): List<Page> = withContext(bgDispatcher) {
-        val cached = cache.get(file)
-        if (cached != null) {
-            return@withContext cached
-        }
-
-        val pages = loadCentralDirectory(file)
-
-        cache.put(file, pages)
-
-        pages
+    suspend fun load(uri: Uri): List<Page> = withContext(bgDispatcher) {
+        loadCentralDirectory(uri)
     }
 
-    private fun loadCentralDirectory(file: File): List<Page> {
-        val eocd = loadEocd(file)
+    private fun loadCentralDirectory(uri: Uri): List<Page> {
+        val eocd = loadEocd(uri)
 
         val buffer = Buffer()
 
-        val bytes = file
-            .runCatching { inputStream() }
+        val bytes = contentResolver
+            .runCatching { openInputStream(uri)!! }
             .getOrThrow()
             .apply { fullSkip(eocd.centralDirectoryStartOffset) }
             .source()
@@ -83,19 +76,31 @@ class PageLoader @Inject constructor(@BgDispatcher private val bgDispatcher: Cor
 
         entries.sortBy { it.first }
 
-        return entries.map { Page(file, it.second) }
+        return entries.map { Page(uri, it.second) }
     }
 
-    private fun loadEocd(file: File): Eocd {
-        val length = file.length()
+    private fun loadEocd(uri: Uri): Eocd {
+        val length = contentResolver.query(
+            uri,
+            arrayOf(DocumentsContract.Document.COLUMN_SIZE),
+            null,
+            null,
+            null
+        )?.use { c ->
+            if (c.moveToFirst() && !c.isNull(0)) {
+                c.getLong(0)
+            } else {
+                0
+            }
+        } ?: 0
 
         val eocdLength = 22 // length excluding comment
         require(length > eocdLength) { "file is too small to be a zip: length=$length" }
 
         val maxCommentLength = 65535
 
-        val bytes = file
-            .runCatching { inputStream() }
+        val bytes = contentResolver
+            .runCatching { openInputStream(uri)!! }
             .getOrThrow()
             .apply { fullSkip((length.toInt() - maxCommentLength - eocdLength).coerceAtLeast(0)) }
             .source()

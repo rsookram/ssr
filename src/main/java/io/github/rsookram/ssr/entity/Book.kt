@@ -1,10 +1,11 @@
 package io.github.rsookram.ssr.entity
 
+import android.net.Uri
 import androidx.annotation.FloatRange
 import androidx.annotation.IntRange
 
 data class Book(
-    val filename: String,
+    val uri: Uri,
     val position: Position,
     val mode: ReadingMode,
     val crop: Crop,

@@ -1,5 +1,6 @@
 package io.github.rsookram.page
 
+import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
@@ -26,6 +27,7 @@ import kotlin.coroutines.suspendCoroutine
 
 @Singleton
 class ImageLoader @Inject constructor(
+    private val contentResolver: ContentResolver,
     @UiDispatcher private val uiDispatcher: CoroutineDispatcher,
     @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
 ) {
@@ -95,7 +97,7 @@ class ImageLoader @Inject constructor(
     }
 
     private fun Page.getBytes(byteCount: Long? = null): ByteArray {
-        val stream = file.runCatching { inputStream() }.getOrNull()
+        val stream = contentResolver.runCatching { openInputStream(uri) }.getOrNull()
             ?: return ByteArray(0)
 
         stream

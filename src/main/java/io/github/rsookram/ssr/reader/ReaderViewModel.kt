@@ -1,5 +1,6 @@
 package io.github.rsookram.ssr.reader
 
+import android.net.Uri
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,35 +22,33 @@ class ReaderViewModel @Inject constructor(
     private val pageLoader: PageLoader,
 ) : ViewModel() {
 
-    private val currentFile = MutableStateFlow<File?>(null)
+    private val currentUri = MutableStateFlow<Uri?>(null)
 
     private val _states = MutableStateFlow(ReaderViewState(book = null, pages = null))
     val states: Flow<ReaderViewState> = _states
 
-    private val _menuShows = eventLiveData<File>()
-    val menuShows: LiveData<File> = _menuShows
+    private val _menuShows = eventLiveData<Uri>()
+    val menuShows: LiveData<Uri> = _menuShows
 
     init {
-        currentFile
+        currentUri
             .filterNotNull()
-            .onEach { file ->
+            .onEach { uri ->
                 bookDao.insertIfNotPresent(
-                    Book(file.name, Position(0, 0.0), ReadingMode.SCROLL_VERTICAL, Crop())
+                    Book(uri, Position(0, 0.0), ReadingMode.SCROLL_VERTICAL, Crop())
                 )
             }
             .launchIn(viewModelScope)
 
-        val books = currentFile
+        val books = currentUri
             .filterNotNull()
-            .flatMapLatest { file ->
-                bookDao.books(file.name)
-            }
+            .flatMapLatest(bookDao::books)
 
-        val pageLists = currentFile
+        val pageLists = currentUri
             .filterNotNull()
-            .transformLatest { file ->
+            .transformLatest { uri ->
                 emit(emptyList())
-                emit(pageLoader.load(file))
+                emit(pageLoader.load(uri))
             }
 
         combine(books, pageLists) { book, pages ->
@@ -62,8 +61,8 @@ class ReaderViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
-    fun loadBook(file: File) {
-        currentFile.value = file
+    fun loadBook(uri: Uri) {
+        currentUri.value = uri
     }
 
     fun onPositionChanged(position: Position) {
@@ -73,7 +72,7 @@ class ReaderViewModel @Inject constructor(
     }
 
     fun onDoubleTap() {
-        val uri = currentFile.value ?: return
+        val uri = currentUri.value ?: return
 
         _menuShows.value = uri
     }
