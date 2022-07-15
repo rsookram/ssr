@@ -11,13 +11,11 @@ import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
 import io.github.rsookram.util.eventLiveData
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -61,9 +59,7 @@ class ReaderMenuViewModel @Inject constructor(
         _states.value = _states.value.copy(book = newBook)
 
         if (!isDragging) {
-            viewModelScope.launch {
-                dao.insert(newBook)
-            }
+            dao.insert(newBook)
         }
     }
 
@@ -74,9 +70,7 @@ class ReaderMenuViewModel @Inject constructor(
         _states.value = _states.value.copy(book = newBook)
 
         if (!isDragging) {
-            viewModelScope.launch {
-                dao.insert(newBook)
-            }
+            dao.insert(newBook)
         }
     }
 
@@ -86,9 +80,7 @@ class ReaderMenuViewModel @Inject constructor(
 
         _states.value = _states.value.copy(book = newBook)
 
-        GlobalScope.launch {
-            dao.insert(newBook)
-        }
+        dao.insert(newBook)
 
         _dismiss.value = Unit
     }

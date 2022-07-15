@@ -13,8 +13,6 @@ import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
 import io.github.rsookram.util.eventLiveData
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import java.io.File
 import javax.inject.Inject
 
 @HiltViewModel
@@ -71,9 +69,7 @@ class ReaderViewModel @Inject constructor(
     fun onPositionChanged(position: Position) {
         val book = _states.value.book ?: return
 
-        viewModelScope.launch {
-            bookDao.insert(book.copy(position = position))
-        }
+        bookDao.insert(book.copy(position = position))
     }
 
     fun onDoubleTap() {
