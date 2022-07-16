@@ -1,28 +1,31 @@
 package io.github.rsookram.ssr
 
+import android.app.Dialog
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
+import androidx.activity.ComponentActivity
 import androidx.activity.viewModels
-import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.reader.Direction
 import io.github.rsookram.ssr.reader.Reader
 import io.github.rsookram.ssr.reader.ReaderViewModel
 import io.github.rsookram.ssr.reader.ReaderViewState
-import io.github.rsookram.ssr.reader.menu.ReaderMenuFragment
+import io.github.rsookram.ssr.reader.menu.ReaderMenuDialog
 import io.github.rsookram.ssr.reader.view.MainView
 import io.github.rsookram.util.enterImmersiveMode
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-class MainActivity : FragmentActivity() {
+class MainActivity : ComponentActivity() {
 
     private var bookUri: Uri? = null
     private var reader: Reader? = null
 
     private val vm: ReaderViewModel by viewModels()
+
+    private var dialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,8 +66,8 @@ class MainActivity : FragmentActivity() {
     }
 
     private fun showMenu(uri: Uri) {
-        // TODO: Move away from fragments
-        ReaderMenuFragment.newInstance(uri).show(supportFragmentManager, null)
+        dialog?.dismiss()
+        dialog = ReaderMenuDialog(uri).show(this)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
@@ -93,5 +96,10 @@ class MainActivity : FragmentActivity() {
         if (hasFocus) {
             window.enterImmersiveMode()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        dialog?.dismiss()
     }
 }
