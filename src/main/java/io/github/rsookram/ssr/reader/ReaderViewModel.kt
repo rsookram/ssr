@@ -3,8 +3,6 @@ package io.github.rsookram.ssr.reader
 import android.app.Application
 import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.viewModelScope
 import io.github.rsookram.page.CroppedPage
 import io.github.rsookram.page.PageLoader
 import io.github.rsookram.ssr.entity.Book
@@ -12,9 +10,13 @@ import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.Position
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 
 class ReaderViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val scope = MainScope()
 
     private val bookDao = BookDao.get(application)
     private val pageLoader = PageLoader(application.contentResolver)
@@ -34,7 +36,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
                     Book(uri, Position(0, 0.0), ReadingMode.SCROLL_VERTICAL, Crop())
                 )
             }
-            .launchIn(viewModelScope)
+            .launchIn(scope)
 
         val books = currentUri
             .filterNotNull()
@@ -54,7 +56,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
             )
         }.onEach { state ->
             _states.value = state
-        }.launchIn(viewModelScope)
+        }.launchIn(scope)
     }
 
     fun loadBook(uri: Uri) {
@@ -71,6 +73,11 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         val uri = currentUri.value ?: return
 
         onShowMenu(uri)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        scope.cancel()
     }
 }
 

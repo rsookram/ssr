@@ -5,8 +5,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
-import androidx.activity.viewModels
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.reader.Direction
 import io.github.rsookram.ssr.reader.Reader
@@ -15,15 +14,19 @@ import io.github.rsookram.ssr.reader.ReaderViewState
 import io.github.rsookram.ssr.reader.menu.ReaderMenuDialog
 import io.github.rsookram.ssr.reader.view.MainView
 import io.github.rsookram.util.enterImmersiveMode
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 class MainActivity : ComponentActivity() {
 
+    private val scope = MainScope()
+
     private var bookUri: Uri? = null
     private var reader: Reader? = null
 
-    private val vm: ReaderViewModel by viewModels()
+    private lateinit var vm: ReaderViewModel
 
     private var dialog: Dialog? = null
 
@@ -31,6 +34,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         window.enterImmersiveMode()
+
+        vm = ViewModelProvider(this).get(ReaderViewModel::class.java)
 
         val uri = intent.data
         if (uri == null) {
@@ -60,7 +65,7 @@ class MainActivity : ComponentActivity() {
                     currentReader.bind(state)
                 }
             }
-            .launchIn(lifecycleScope)
+            .launchIn(scope)
 
         vm.onShowMenu = this::showMenu
     }
@@ -102,5 +107,6 @@ class MainActivity : ComponentActivity() {
         super.onDestroy()
         vm.onShowMenu = {}
         dialog?.dismiss()
+        scope.cancel()
     }
 }
