@@ -62,7 +62,7 @@ class MainActivity : ComponentActivity() {
             }
             .launchIn(lifecycleScope)
 
-        vm.menuShows.observe(this, this::showMenu)
+        vm.onShowMenu = this::showMenu
     }
 
     private fun showMenu(uri: Uri) {
@@ -100,6 +100,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        vm.onShowMenu = {}
         dialog?.dismiss()
     }
 }

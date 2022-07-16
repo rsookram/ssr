@@ -12,7 +12,6 @@ import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.Position
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
-import io.github.rsookram.util.eventLiveData
 import kotlinx.coroutines.flow.*
 
 class ReaderViewModel(application: Application) : AndroidViewModel(application) {
@@ -25,8 +24,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     private val _states = MutableStateFlow(ReaderViewState(book = null, pages = null))
     val states: Flow<ReaderViewState> = _states
 
-    private val _menuShows = eventLiveData<Uri>()
-    val menuShows: LiveData<Uri> = _menuShows
+    var onShowMenu: (Uri) -> Unit = {}
 
     init {
         currentUri
@@ -72,7 +70,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     fun onDoubleTap() {
         val uri = currentUri.value ?: return
 
-        _menuShows.value = uri
+        onShowMenu(uri)
     }
 }
 
