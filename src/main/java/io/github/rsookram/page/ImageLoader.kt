@@ -10,10 +10,6 @@ import android.util.LruCache
 import android.util.Size
 import android.view.View
 import android.widget.ImageView
-import androidx.core.graphics.decodeBitmap
-import androidx.core.util.component1
-import androidx.core.util.component2
-import androidx.core.view.doOnLayout
 import kotlinx.coroutines.*
 import okio.buffer
 import okio.source
@@ -54,9 +50,26 @@ class ImageLoader(private val contentResolver: ContentResolver) {
         }
     }
 
-    private suspend fun View.waitUntilLaidOut() = suspendCoroutine<Unit> { continuation ->
-        doOnLayout {
+    private suspend fun View.waitUntilLaidOut() = suspendCoroutine { continuation ->
+        if (isLaidOut && !isLayoutRequested) {
             continuation.resume(Unit)
+        } else {
+            addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
+                override fun onLayoutChange(
+                    v: View?,
+                    left: Int,
+                    top: Int,
+                    right: Int,
+                    bottom: Int,
+                    oldLeft: Int,
+                    oldTop: Int,
+                    oldRight: Int,
+                    oldBottom: Int
+                ) {
+                    continuation.resume(Unit)
+                    removeOnLayoutChangeListener(this)
+                }
+            })
         }
     }
 
@@ -67,8 +80,9 @@ class ImageLoader(private val contentResolver: ContentResolver) {
     ): Bitmap = withContext(Dispatchers.IO) {
         val buffer = ByteBuffer.wrap(page.page.getBytes())
 
-        ImageDecoder.createSource(buffer).decodeBitmap { info, _ ->
-            val (imageWidth, imageHeight) = info.size
+        ImageDecoder.decodeBitmap(ImageDecoder.createSource(buffer)) { decoder, info, _ ->
+            val imageWidth = info.size.width
+            val imageHeight = info.size.height
 
             val (width, height) = if (viewWidth < imageWidth && viewHeight < imageHeight) {
                 // Assume that the view and image have the same aspect ratio
@@ -77,14 +91,14 @@ class ImageLoader(private val contentResolver: ContentResolver) {
                 imageWidth to imageHeight
             }
 
-            crop = Rect(
+            decoder.crop = Rect(
                 page.crop.left,
                 page.crop.top,
                 width - page.crop.right,
                 height - page.crop.bottom
             )
 
-            setTargetSize(width, height)
+            decoder.setTargetSize(width, height)
         }
     }
 

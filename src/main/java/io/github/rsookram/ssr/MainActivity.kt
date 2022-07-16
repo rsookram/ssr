@@ -1,11 +1,10 @@
 package io.github.rsookram.ssr
 
+import android.app.Activity
 import android.app.Dialog
 import android.net.Uri
 import android.os.Bundle
 import android.view.KeyEvent
-import androidx.activity.ComponentActivity
-import androidx.lifecycle.ViewModelProvider
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.reader.Direction
 import io.github.rsookram.ssr.reader.Reader
@@ -19,7 +18,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
-class MainActivity : ComponentActivity() {
+class MainActivity : Activity() {
 
     private val scope = MainScope()
 
@@ -33,9 +32,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.enterImmersiveMode()
-
-        vm = ViewModelProvider(this).get(ReaderViewModel::class.java)
+        vm = lastNonConfigurationInstance as? ReaderViewModel ?: ReaderViewModel(applicationContext)
 
         val uri = intent.data
         if (uri == null) {
@@ -47,6 +44,8 @@ class MainActivity : ComponentActivity() {
         vm.loadBook(uri)
 
         val view = MainView(findViewById(android.R.id.content), vm)
+
+        window.enterImmersiveMode()
 
         var lastState: ReaderViewState? = null
         vm.states
@@ -74,6 +73,8 @@ class MainActivity : ComponentActivity() {
         dialog?.dismiss()
         dialog = ReaderMenuDialog(uri).show(this)
     }
+
+    override fun onRetainNonConfigurationInstance(): Any = vm
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         val uri = bookUri
@@ -108,5 +109,9 @@ class MainActivity : ComponentActivity() {
         vm.onShowMenu = {}
         dialog?.dismiss()
         scope.cancel()
+
+        if (isFinishing) {
+            vm.onCleared()
+        }
     }
 }

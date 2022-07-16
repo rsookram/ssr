@@ -1,7 +1,6 @@
 package io.github.rsookram.ssr.reader.view
 
 import android.content.Context
-import androidx.core.view.doOnNextLayout
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import io.github.rsookram.ssr.R
@@ -10,6 +9,7 @@ import io.github.rsookram.ssr.reader.Direction
 import io.github.rsookram.ssr.reader.PageAdapter
 import io.github.rsookram.ssr.reader.Reader
 import io.github.rsookram.ssr.reader.ReaderViewState
+import io.github.rsookram.util.doOnNextLayout
 
 class VerticalScrollView(context: Context) : RecyclerView(context), Reader {
 

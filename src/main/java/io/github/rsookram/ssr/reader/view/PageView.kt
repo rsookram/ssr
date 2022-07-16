@@ -6,8 +6,6 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.drawable.Drawable
 import android.view.ViewGroup
 import android.widget.ImageView
-import androidx.core.util.component1
-import androidx.core.util.component2
 import io.github.rsookram.page.CroppedPage
 import io.github.rsookram.page.ImageLoader
 import io.github.rsookram.ssr.entity.Crop
@@ -42,7 +40,9 @@ class PageView(context: Context, private val scaleImage: ScaleImage) : ImageView
     }
 
     fun bind(page: CroppedPage) {
-        val (width, height) = imageLoader.loadSize(page.page)
+        val size = imageLoader.loadSize(page.page)
+        val width = size.width
+        val height = size.height
 
         if (imageWidth != width || imageHeight != height) {
             requestLayout()

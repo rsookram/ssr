@@ -55,13 +55,9 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.activity:activity:1.5.0'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
 
     implementation  'androidx.core:core:1.8.0'
-
-    implementation "androidx.lifecycle:lifecycle-runtime:2.5.0"
-    implementation "androidx.lifecycle:lifecycle-viewmodel:2.5.0"
 
     implementation 'com.squareup.okio:okio:3.0.0'
 

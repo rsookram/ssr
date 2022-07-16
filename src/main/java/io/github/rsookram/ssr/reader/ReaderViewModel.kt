@@ -1,8 +1,7 @@
 package io.github.rsookram.ssr.reader
 
-import android.app.Application
+import android.content.Context
 import android.net.Uri
-import androidx.lifecycle.AndroidViewModel
 import io.github.rsookram.page.CroppedPage
 import io.github.rsookram.page.PageLoader
 import io.github.rsookram.ssr.entity.Book
@@ -14,12 +13,12 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.*
 
-class ReaderViewModel(application: Application) : AndroidViewModel(application) {
+class ReaderViewModel(applicationContext: Context) {
 
     private val scope = MainScope()
 
-    private val bookDao = BookDao.get(application)
-    private val pageLoader = PageLoader(application.contentResolver)
+    private val bookDao = BookDao.get(applicationContext)
+    private val pageLoader = PageLoader(applicationContext.contentResolver)
 
     private val currentUri = MutableStateFlow<Uri?>(null)
 
@@ -75,8 +74,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         onShowMenu(uri)
     }
 
-    override fun onCleared() {
-        super.onCleared()
+    fun onCleared() {
         scope.cancel()
     }
 }
