@@ -1,11 +1,8 @@
 package io.github.rsookram.ssr.reader.menu
 
+import android.app.Application
 import android.net.Uri
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.lifecycle.*
 import io.github.rsookram.page.PageLoader
 import io.github.rsookram.ssr.entity.Book
 import io.github.rsookram.ssr.entity.Crop
@@ -17,16 +14,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
-@HiltViewModel
-class ReaderMenuViewModel @Inject constructor(
-    private val dao: BookDao,
-    private val pageLoader: PageLoader,
-    savedStateHandle: SavedStateHandle,
-) : ViewModel() {
+class ReaderMenuViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val uri = savedStateHandle.get<Uri>(KEY_URI)!!
+    private val dao = BookDao.get(application)
+    private val pageLoader = PageLoader(application.contentResolver)
 
     private val _states = MutableStateFlow(ReaderMenuState())
     val states: Flow<ReaderMenuState> = _states
@@ -34,7 +26,7 @@ class ReaderMenuViewModel @Inject constructor(
     private val _dismiss = eventLiveData<Unit>()
     val dismiss: LiveData<Unit> = _dismiss
 
-    init {
+    fun setUri(uri: Uri) {
         viewModelScope.launch {
             val pageCount = pageLoader.load(uri).size
             _states.value = _states.value.copy(pageCount = pageCount)
@@ -84,10 +76,6 @@ class ReaderMenuViewModel @Inject constructor(
         dao.insert(newBook)
 
         _dismiss.value = Unit
-    }
-
-    companion object {
-        const val KEY_URI = "book_uri"
     }
 }
 

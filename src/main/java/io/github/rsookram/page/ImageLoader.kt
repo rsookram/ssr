@@ -1,6 +1,7 @@
 package io.github.rsookram.page
 
 import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
@@ -13,24 +14,15 @@ import androidx.core.graphics.decodeBitmap
 import androidx.core.util.component1
 import androidx.core.util.component2
 import androidx.core.view.doOnLayout
-import io.github.rsookram.ssr.BgDispatcher
-import io.github.rsookram.ssr.UiDispatcher
 import kotlinx.coroutines.*
 import okio.buffer
 import okio.source
 import java.nio.ByteBuffer
 import java.util.zip.ZipInputStream
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
-@Singleton
-class ImageLoader @Inject constructor(
-    private val contentResolver: ContentResolver,
-    @UiDispatcher private val uiDispatcher: CoroutineDispatcher,
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
-) {
+class ImageLoader(private val contentResolver: ContentResolver) {
 
     private val bitmapCache: LruCache<CroppedPage, Bitmap> = LruCache(3)
 
@@ -51,7 +43,7 @@ class ImageLoader @Inject constructor(
             return
         }
 
-        view.tag = GlobalScope.launch(uiDispatcher) {
+        view.tag = GlobalScope.launch(Dispatchers.Main) {
             view.waitUntilLaidOut()
 
             val bitmap = loadBitmap(page, view.width, view.height)
@@ -72,7 +64,7 @@ class ImageLoader @Inject constructor(
         page: CroppedPage,
         viewWidth: Int,
         viewHeight: Int,
-    ): Bitmap = withContext(bgDispatcher) {
+    ): Bitmap = withContext(Dispatchers.IO) {
         val buffer = ByteBuffer.wrap(page.page.getBytes())
 
         ImageDecoder.createSource(buffer).decodeBitmap { info, _ ->
@@ -132,5 +124,16 @@ class ImageLoader @Inject constructor(
         val size = Size(options.outWidth, options.outHeight)
         sizeCache.put(page, size)
         return size
+    }
+
+    companion object {
+
+        private var instance: ImageLoader? = null
+
+        fun get(context: Context): ImageLoader {
+            val loader = instance ?: ImageLoader(context.contentResolver)
+            instance = loader
+            return loader
+        }
     }
 }

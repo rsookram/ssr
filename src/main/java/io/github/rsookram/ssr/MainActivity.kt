@@ -6,7 +6,6 @@ import android.view.KeyEvent
 import androidx.activity.viewModels
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
-import dagger.hilt.android.AndroidEntryPoint
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.reader.Direction
 import io.github.rsookram.ssr.reader.Reader
@@ -17,9 +16,7 @@ import io.github.rsookram.ssr.reader.view.MainView
 import io.github.rsookram.util.enterImmersiveMode
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import java.io.File
 
-@AndroidEntryPoint
 class MainActivity : FragmentActivity() {
 
     private var bookUri: Uri? = null

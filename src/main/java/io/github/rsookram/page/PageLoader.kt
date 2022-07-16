@@ -3,8 +3,7 @@ package io.github.rsookram.page
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
-import io.github.rsookram.ssr.BgDispatcher
-import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okio.Buffer
 import okio.ByteString.Companion.toByteString
@@ -12,16 +11,10 @@ import okio.buffer
 import okio.source
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PageLoader @Inject constructor(
-    private val contentResolver: ContentResolver,
-    @BgDispatcher private val bgDispatcher: CoroutineDispatcher,
-) {
+class PageLoader(private val contentResolver: ContentResolver) {
 
-    suspend fun load(uri: Uri): List<Page> = withContext(bgDispatcher) {
+    suspend fun load(uri: Uri): List<Page> = withContext(Dispatchers.IO) {
         loadCentralDirectory(uri)
     }
 

@@ -9,7 +9,6 @@
         android:icon="@mipmap/ic_launcher"
         android:label="SSR"
         android:supportsRtl="true"
-        android:name=".App"
         android:theme="@style/Theme.App"
         tools:ignore="DataExtractionRules">
         <activity

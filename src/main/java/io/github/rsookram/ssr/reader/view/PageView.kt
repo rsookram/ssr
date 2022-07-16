@@ -8,11 +8,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.core.util.component1
 import androidx.core.util.component2
-import dagger.hilt.android.AndroidEntryPoint
 import io.github.rsookram.page.CroppedPage
 import io.github.rsookram.page.ImageLoader
 import io.github.rsookram.ssr.entity.Crop
-import javax.inject.Inject
 
 /**
  * Colour matrix that flips the components (`-1.0f * c + 255 = 255 - c`) and
@@ -27,10 +25,9 @@ private val NEGATIVE = floatArrayOf(
     0f, 0f, 0f, 1.0f, 0f     // alpha
 )
 
-@AndroidEntryPoint
 class PageView(context: Context, private val scaleImage: ScaleImage) : ImageView(context) {
 
-    @Inject lateinit var imageLoader: ImageLoader
+    private val imageLoader = ImageLoader.get(context)
 
     private var imageWidth = 0
     private var imageHeight = 0

@@ -1,10 +1,10 @@
 package io.github.rsookram.ssr.reader
 
+import android.app.Application
 import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dagger.hilt.android.lifecycle.HiltViewModel
 import io.github.rsookram.page.CroppedPage
 import io.github.rsookram.page.PageLoader
 import io.github.rsookram.ssr.entity.Book
@@ -14,13 +14,11 @@ import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
 import io.github.rsookram.util.eventLiveData
 import kotlinx.coroutines.flow.*
-import javax.inject.Inject
 
-@HiltViewModel
-class ReaderViewModel @Inject constructor(
-    private val bookDao: BookDao,
-    private val pageLoader: PageLoader,
-) : ViewModel() {
+class ReaderViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val bookDao = BookDao.get(application)
+    private val pageLoader = PageLoader(application.contentResolver)
 
     private val currentUri = MutableStateFlow<Uri?>(null)
 

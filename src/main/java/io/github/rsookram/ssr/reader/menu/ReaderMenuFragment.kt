@@ -8,17 +8,20 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
-import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 // TODO: Fix bug with config change while this is shown
-@AndroidEntryPoint
 class ReaderMenuFragment : DialogFragment() {
 
     private val vm: ReaderMenuViewModel by viewModels()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        if (savedInstanceState == null) {
+            val uri = requireArguments().getParcelable<Uri>(KEY_URI)!!
+            vm.setUri(uri)
+        }
+
         val view = ReaderMenuView(requireContext(), vm)
 
         vm.states
@@ -34,9 +37,11 @@ class ReaderMenuFragment : DialogFragment() {
 
     companion object {
 
+        private const val KEY_URI = "book_uri"
+
         fun newInstance(bookUri: Uri): DialogFragment =
             ReaderMenuFragment().apply {
-                arguments = bundleOf(ReaderMenuViewModel.KEY_URI to bookUri)
+                arguments = bundleOf(KEY_URI to bookUri)
             }
     }
 }
