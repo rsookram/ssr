@@ -6,18 +6,13 @@ import io.github.rsookram.ssr.entity.Book
 import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.Position
 import io.github.rsookram.ssr.entity.ReadingMode
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.*
 import org.json.JSONObject
 
 class BookDao(context: Context) {
 
     private val prefs = context.getSharedPreferences("book", Context.MODE_PRIVATE)
 
-    private val books = MutableSharedFlow<Book>(
-        onBufferOverflow = BufferOverflow.DROP_OLDEST,
-        extraBufferCapacity = Int.MAX_VALUE,
-    )
+    private val bookUpdateListeners = mutableSetOf<(Book) -> Unit>()
 
     fun insertIfNotPresent(book: Book) {
         if (prefs.getString(key(book), null) == null) {
@@ -30,19 +25,18 @@ class BookDao(context: Context) {
             .putString(key(book), toJson(book))
             .apply()
 
-        books.tryEmit(book)
+        bookUpdateListeners.forEach { it(book) }
     }
 
-    fun books(uri: Uri) = flow<Book> {
-        val book = get(uri)
-        if (book != null) {
-            emit(book)
-        }
-
-        emitAll(books.filter { it.uri == uri })
+    fun addBookUpdateListener(listener: (Book) -> Unit) {
+        bookUpdateListeners.add(listener)
     }
 
-    private fun get(uri: Uri): Book? {
+    fun removeBookUpdateListener(listener: (Book) -> Unit) {
+        bookUpdateListeners.remove(listener)
+    }
+
+    fun get(uri: Uri): Book? {
         val json = prefs.getString(uri.toString(), null) ?: return null
         return fromJson(uri, json)
     }

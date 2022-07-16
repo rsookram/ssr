@@ -13,14 +13,8 @@ import io.github.rsookram.ssr.reader.ReaderViewState
 import io.github.rsookram.ssr.reader.menu.ReaderMenuDialog
 import io.github.rsookram.ssr.reader.view.MainView
 import io.github.rsookram.util.enterImmersiveMode
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 
 class MainActivity : Activity() {
-
-    private val scope = MainScope()
 
     private var bookUri: Uri? = null
     private var reader: Reader? = null
@@ -48,23 +42,21 @@ class MainActivity : Activity() {
         window.enterImmersiveMode()
 
         var lastState: ReaderViewState? = null
-        vm.states
-            .onEach { state ->
-                val newMode = state.book?.mode ?: ReadingMode.SCROLL_VERTICAL
-                val currentReader = if (newMode != lastState?.book?.mode) {
-                    view.createReader(newMode)
-                } else {
-                    reader ?: view.createReader(newMode)
-                }
-
-                reader = currentReader
-                lastState = state
-
-                if (state.pages != null) {
-                    currentReader.bind(state)
-                }
+        vm.onState = { state ->
+            val newMode = state.book?.mode ?: ReadingMode.SCROLL_VERTICAL
+            val currentReader = if (newMode != lastState?.book?.mode) {
+                view.createReader(newMode)
+            } else {
+                reader ?: view.createReader(newMode)
             }
-            .launchIn(scope)
+
+            reader = currentReader
+            lastState = state
+
+            if (state.pages != null) {
+                currentReader.bind(state)
+            }
+        }
 
         vm.onShowMenu = this::showMenu
     }
@@ -106,9 +98,10 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        vm.onState = {}
         vm.onShowMenu = {}
         dialog?.dismiss()
-        scope.cancel()
 
         if (isFinishing) {
             vm.onCleared()

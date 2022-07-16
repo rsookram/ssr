@@ -10,16 +10,17 @@ import android.util.LruCache
 import android.util.Size
 import android.view.View
 import android.widget.ImageView
-import kotlinx.coroutines.*
+import io.github.rsookram.util.MainExecutor
 import okio.buffer
 import okio.source
 import java.nio.ByteBuffer
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 import java.util.zip.ZipInputStream
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 class ImageLoader(private val contentResolver: ContentResolver) {
 
+    private val loadingExecutor = Executors.newCachedThreadPool()
     private val bitmapCache: LruCache<CroppedPage, Bitmap> = LruCache(3)
 
     private val options = BitmapFactory.Options().apply {
@@ -29,7 +30,7 @@ class ImageLoader(private val contentResolver: ContentResolver) {
     private var sizeCache: LruCache<Page, Size> = LruCache(64)
 
     fun loadPage(page: CroppedPage, view: ImageView) {
-        (view.tag as? Job)?.cancel()
+        (view.tag as? CompletableFuture<*>)?.cancel(false)
 
         val cached = bitmapCache.get(page)
         if (cached == null) {
@@ -39,20 +40,22 @@ class ImageLoader(private val contentResolver: ContentResolver) {
             return
         }
 
-        view.tag = GlobalScope.launch(Dispatchers.Main) {
-            view.waitUntilLaidOut()
-
-            val bitmap = loadBitmap(page, view.width, view.height)
-
-            bitmapCache.put(page, bitmap)
-
-            view.setImageBitmap(bitmap)
-        }
+        view.tag = view.waitUntilLaidOut()
+            .thenApplyAsync({ loadBitmap(page, view.width, view.height) }, loadingExecutor)
+            .thenAcceptAsync(
+                { bitmap ->
+                    bitmapCache.put(page, bitmap)
+                    view.setImageBitmap(bitmap)
+                },
+                MainExecutor
+            )
     }
 
-    private suspend fun View.waitUntilLaidOut() = suspendCoroutine { continuation ->
+    private fun View.waitUntilLaidOut(): CompletableFuture<Unit> {
+        val completableFuture = CompletableFuture<Unit>()
+
         if (isLaidOut && !isLayoutRequested) {
-            continuation.resume(Unit)
+            completableFuture.complete(Unit)
         } else {
             addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
                 override fun onLayoutChange(
@@ -66,21 +69,19 @@ class ImageLoader(private val contentResolver: ContentResolver) {
                     oldRight: Int,
                     oldBottom: Int
                 ) {
-                    continuation.resume(Unit)
+                    completableFuture.complete(Unit)
                     removeOnLayoutChangeListener(this)
                 }
             })
         }
+
+        return completableFuture
     }
 
-    private suspend fun loadBitmap(
-        page: CroppedPage,
-        viewWidth: Int,
-        viewHeight: Int,
-    ): Bitmap = withContext(Dispatchers.IO) {
+    private fun loadBitmap(page: CroppedPage, viewWidth: Int, viewHeight: Int): Bitmap {
         val buffer = ByteBuffer.wrap(page.page.getBytes())
 
-        ImageDecoder.decodeBitmap(ImageDecoder.createSource(buffer)) { decoder, info, _ ->
+        return ImageDecoder.decodeBitmap(ImageDecoder.createSource(buffer)) { decoder, info, _ ->
             val imageWidth = info.size.width
             val imageHeight = info.size.height
 

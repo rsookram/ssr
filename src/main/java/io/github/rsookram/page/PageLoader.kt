@@ -3,8 +3,6 @@ package io.github.rsookram.page
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import okio.Buffer
 import okio.ByteString.Companion.toByteString
 import okio.buffer
@@ -14,9 +12,7 @@ import java.nio.ByteOrder
 
 class PageLoader(private val contentResolver: ContentResolver) {
 
-    suspend fun load(uri: Uri): List<Page> = withContext(Dispatchers.IO) {
-        loadCentralDirectory(uri)
-    }
+    fun load(uri: Uri): List<Page> = loadCentralDirectory(uri)
 
     private fun loadCentralDirectory(uri: Uri): List<Page> {
         val eocd = loadEocd(uri)

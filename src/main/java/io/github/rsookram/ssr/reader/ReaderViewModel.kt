@@ -9,73 +9,69 @@ import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.Position
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.*
 
 class ReaderViewModel(applicationContext: Context) {
-
-    private val scope = MainScope()
 
     private val bookDao = BookDao.get(applicationContext)
     private val pageLoader = PageLoader(applicationContext.contentResolver)
 
-    private val currentUri = MutableStateFlow<Uri?>(null)
+    private var currentUri: Uri? = null
 
-    private val _states = MutableStateFlow(ReaderViewState(book = null, pages = null))
-    val states: Flow<ReaderViewState> = _states
+    private var state = ReaderViewState(book = null, pages = null)
+        set(value) {
+            field = value
+            onState(value)
+        }
 
+    var onState: (ReaderViewState) -> Unit = {}
+        set(value) {
+            if (state.book != null) {
+                value(state)
+            }
+            field = value
+        }
     var onShowMenu: (Uri) -> Unit = {}
 
-    init {
-        currentUri
-            .filterNotNull()
-            .onEach { uri ->
-                bookDao.insertIfNotPresent(
-                    Book(uri, Position(0, 0.0), ReadingMode.SCROLL_VERTICAL, Crop())
-                )
-            }
-            .launchIn(scope)
-
-        val books = currentUri
-            .filterNotNull()
-            .flatMapLatest(bookDao::books)
-
-        val pageLists = currentUri
-            .filterNotNull()
-            .transformLatest { uri ->
-                emit(emptyList())
-                emit(pageLoader.load(uri))
-            }
-
-        combine(books, pageLists) { book, pages ->
-            ReaderViewState(
-                book,
-                pages.map { CroppedPage(it, book.crop) },
-            )
-        }.onEach { state ->
-            _states.value = state
-        }.launchIn(scope)
+    private val onBookUpdate: (Book) -> Unit = { book ->
+        if (book.uri == currentUri) {
+            state = state.copy(book = book)
+        }
     }
 
     fun loadBook(uri: Uri) {
-        currentUri.value = uri
+        if (uri == currentUri) {
+            return
+        }
+
+        currentUri = uri
+
+        val defaultBook = Book(uri, Position(0, 0.0), ReadingMode.SCROLL_VERTICAL, Crop())
+        bookDao.insertIfNotPresent(defaultBook)
+
+        val book = bookDao.get(uri) ?: defaultBook
+        state = ReaderViewState(
+            book = book,
+            // TODO: Move page loading to a background thread
+            pages = pageLoader.load(uri).map { CroppedPage(it, book.crop) },
+        )
+
+        bookDao.addBookUpdateListener(onBookUpdate)
     }
 
     fun onPositionChanged(position: Position) {
-        val book = _states.value.book ?: return
+        val book = state.book ?: return
 
         bookDao.insert(book.copy(position = position))
     }
 
     fun onDoubleTap() {
-        val uri = currentUri.value ?: return
+        val uri = currentUri ?: return
 
         onShowMenu(uri)
     }
 
     fun onCleared() {
-        scope.cancel()
+        bookDao.removeBookUpdateListener(onBookUpdate)
     }
 }
 

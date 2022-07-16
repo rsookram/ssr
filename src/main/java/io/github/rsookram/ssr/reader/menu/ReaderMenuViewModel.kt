@@ -7,47 +7,61 @@ import io.github.rsookram.ssr.entity.Book
 import io.github.rsookram.ssr.entity.Crop
 import io.github.rsookram.ssr.entity.ReadingMode
 import io.github.rsookram.ssr.model.BookDao
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
+import io.github.rsookram.util.MainExecutor
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Future
 
-class ReaderMenuViewModel(context: Context, private val scope: CoroutineScope) {
+class ReaderMenuViewModel(context: Context, private val uri: Uri) {
 
     private val dao = BookDao.get(context)
     private val pageLoader = PageLoader(context.contentResolver)
 
-    private val _states = MutableStateFlow(ReaderMenuState())
-    val states: Flow<ReaderMenuState> = _states
+    private val cancellables = mutableListOf<Future<*>>()
 
-    var onDismiss: () -> Unit = {}
-
-    fun setUri(uri: Uri) {
-        scope.launch {
-            val pageCount = pageLoader.load(uri).size
-            _states.value = _states.value.copy(pageCount = pageCount)
+    private var state = ReaderMenuState()
+        set(value) {
+            field = value
+            onState(value)
         }
 
-        dao.books(uri)
-            .onEach { book ->
-                val currentValue = _states.value
+    var onState: (ReaderMenuState) -> Unit = {}
+    var onDismiss: () -> Unit = {}
 
-                _states.value = if (currentValue.book == null) {
-                    currentValue.copy(book = book)
-                } else {
-                    currentValue.copy(book = currentValue.book.copy(mode = book.mode))
-                }
+    private val onBookUpdate: (Book) -> Unit = { book ->
+        if (book.uri == uri) {
+            val currentValue = state
+
+            state = if (currentValue.book == null) {
+                currentValue.copy(book = book)
+            } else {
+                currentValue.copy(book = currentValue.book.copy(mode = book.mode))
             }
-            .launchIn(scope)
+        }
+    }
+
+    init {
+        cancellables += CompletableFuture
+            .supplyAsync { pageLoader.load(uri).size }
+            .thenAcceptAsync(
+                { pageCount ->
+                    state = state.copy(pageCount = pageCount)
+                },
+                MainExecutor
+            )
+
+        val book = dao.get(uri)
+        if (book != null) {
+            onBookUpdate(book)
+        }
+
+        dao.addBookUpdateListener(onBookUpdate)
     }
 
     fun onProgressChanged(progress: Int, isDragging: Boolean) {
-        val book = _states.value.book ?: return
+        val book = state.book ?: return
         val newBook = book.copy(position = book.position.copy(pageIndex = progress, offset = 0.0))
 
-        _states.value = _states.value.copy(book = newBook)
+        state = state.copy(book = newBook)
 
         if (!isDragging) {
             dao.insert(newBook)
@@ -55,10 +69,10 @@ class ReaderMenuViewModel(context: Context, private val scope: CoroutineScope) {
     }
 
     fun onCropChanged(crop: Crop, isDragging: Boolean) {
-        val book = _states.value.book ?: return
+        val book = state.book ?: return
         val newBook = book.copy(crop = crop)
 
-        _states.value = _states.value.copy(book = newBook)
+        state = state.copy(book = newBook)
 
         if (!isDragging) {
             dao.insert(newBook)
@@ -66,14 +80,20 @@ class ReaderMenuViewModel(context: Context, private val scope: CoroutineScope) {
     }
 
     fun onReadingModeSelected(mode: ReadingMode) {
-        val book = _states.value.book ?: return
+        val book = state.book ?: return
         val newBook = book.copy(mode = mode)
 
-        _states.value = _states.value.copy(book = newBook)
+        state = state.copy(book = newBook)
 
         dao.insert(newBook)
 
         onDismiss()
+    }
+
+    fun onCleared() {
+        dao.removeBookUpdateListener(onBookUpdate)
+        cancellables.forEach { it.cancel(false) }
+        cancellables.clear()
     }
 }
 
