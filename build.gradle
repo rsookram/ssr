@@ -54,6 +54,12 @@ android {
     lint {
         checkReleaseBuilds = false
     }
+
+    packagingOptions {
+        exclude("/kotlin/**")
+        exclude("META-INF/*.version")
+        exclude("kotlin-tooling-metadata.json")
+    }
 }
 
 dependencies {
